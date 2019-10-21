@@ -15,6 +15,8 @@ limitations under the License.
 """
 import time
 import os
+import argparse
+
 import numpy as np
 import tensorflow as tf
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
@@ -47,7 +49,7 @@ def meta_gp_test(x_dim=1,
                     data_test,
                     [128, 128, 128, 128], 
                     [128, 128, 2]
-    )
+        )
 
     target_y, pred_y, pred_var = train(g, data_test, train_iters, eval_after)
     target = target_y[0,:,0]
@@ -60,7 +62,7 @@ def meta_gp_test(x_dim=1,
     target_max_index = np.argmax(target)
     pred_max_index = np.argmax(pred)
     print("Real: {}, Estimate: {}".format(target_max_index, pred_max_index))
-    print("Real optima: {:.5f}, estimated: {:.5f}({:.5f}))".format(
+    print("Real optima: {:.5f}, estimated: {:.5f}({:.5f})".format(
         target[target_max_index], pred[target_max_index], var[target_max_index]))
     print("Estimated optima: {:.5f} ({:.5f}), real: {:.5f}".format(
         pred[pred_max_index], var[pred_max_index], target[pred_max_index]))
@@ -69,5 +71,16 @@ if __name__ == "__main__":
     os.environ['CUDA_DEVICE_ORDER'] = "PCI_BUS_ID"
     os.environ['CUDA_VISIBLE_DEVICES'] = "0"    
     start = time.time()
-    meta_gp_test()
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-x_dim', type=int, default=1, help='GP input dimension') 
+    parser.add_argument('-batch_size', type=int, default=64, help='meta-train batch size') 
+    parser.add_argument('-test_targets', type=int, default=500, help='number of test targets') 
+    parser.add_argument('-context_points', type=int, default=10, help='number of support set') 
+    parser.add_argument('-train_iters', type=int, default=int(1.5e5), help='number of iterations in meta-training phase') 
+    parser.add_argument('-eval_after', type=int, default=int(1e4), help='the validation steps during meta-training') 
+    
+    args = vars(parser.parse_args())
+    print("condition: {}".format(args))
+    meta_gp_test(**args)
     print("Elapsed time of meta-learning: {:.0f}".format(time.time() - start))

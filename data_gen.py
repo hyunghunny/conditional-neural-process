@@ -121,7 +121,7 @@ class GPCurvesReader(object):
             #    shape=(), minval=2, maxval=self._max_num_context, dtype=tf.int32)
             #num_target = self._num_context
             num_total_points = num_context + num_target
-        x_values = tf.random_uniform(
+        x_values = tf.random.uniform(
             [self._batch_size, num_total_points, self._x_size], min_x, max_x)
 
         # Set kernel parameters

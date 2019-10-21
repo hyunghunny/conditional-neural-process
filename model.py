@@ -66,6 +66,6 @@ def train(graph, data_test, max_iters, validate_after):
                 )
 
                 (context_x, context_y), target_x = whole_query
-                print('Iteration: {}, loss: {}'.format(it, loss_value))
+                print('Iteration: {}, loss: {:.5f}'.format(it, loss_value))
 
         return (target_y, pred_y, pred_var)

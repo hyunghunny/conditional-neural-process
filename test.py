@@ -13,7 +13,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
+import time
+import os
 import numpy as np
 import tensorflow as tf
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
@@ -65,4 +66,8 @@ def meta_gp_test(x_dim=1,
         pred[pred_max_index], var[pred_max_index], target[pred_max_index]))
 
 if __name__ == "__main__":
+    os.environ['CUDA_DEVICE_ORDER'] = "PCI_BUS_ID"
+    os.environ['CUDA_VISIBLE_DEVICES'] = "0"    
+    start = time.time()
     meta_gp_test()
+    print("Elapsed time of meta-learning: {:.0f}".format(time.time() - start))

@@ -40,8 +40,8 @@ def build_graph(data_train, data_test,
     optimizer = tf.train.AdamOptimizer(lr)
     train_step = optimizer.minimize(loss)
 
-    tf.summary.scalar('train_loss', loss)
-
+    train_summary = tf.summary.scalar('train_loss', loss)
+    test_summary = tf.summary.scalar('test_loss', loss)
 
     # The final output layer of the decoder outputs two values, one for the mean and
     # one for the variance of the prediction at the target location
@@ -49,7 +49,11 @@ def build_graph(data_train, data_test,
         "train_step": train_step, 
         "loss": loss, 
         "mu": mu, 
-        "sigma" : sigma
+        "sigma" : sigma,
+        "summary" : {
+            "train": train_summary,
+            "test" : test_summary
+        }
     }
 
 
@@ -59,17 +63,15 @@ def train(graph, data_test, max_iters, validate_after, log_dir):
         writer = tf.summary.FileWriter('./logs/{}'.format(log_dir), sess.graph)
         sess.run(init)        
         for it in range(max_iters):
-            sess.run([graph['train_step']])
-
+            train_loss, train_summary = sess.run([graph['train_step'], graph['summary']['train']])
+            writer.add_summary(train_summary, it)
             if it % validate_after == 0:
-                loss_value, pred_y, pred_var, target_y, whole_query = sess.run(
+                loss_value, pred_y, pred_var, target_y, whole_query, test_summary = sess.run(
                     [ graph['loss'], graph['mu'], graph['sigma'], 
-                     data_test.target_y, data_test.query ]
+                     data_test.target_y, data_test.query,
+                     graph['summary']['test'] ]
                 )
-                tf.summary.scalar('test_loss', loss_value)
-                merge = tf.compat.v1.summary.merge_all()
-                summary = sess.run(merge)
-                writer.add_summary(summary, it)
+                writer.add_summary(test_summary, it)
                 (context_x, context_y), target_x = whole_query
                 print('Iteration: {}, test loss: {:.5f}'.format(it, loss_value))
 

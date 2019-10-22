@@ -40,6 +40,9 @@ def build_graph(data_train, data_test,
     optimizer = tf.train.AdamOptimizer(lr)
     train_step = optimizer.minimize(loss)
 
+    tf.summary.scalar('train_loss', loss)
+
+
     # The final output layer of the decoder outputs two values, one for the mean and
     # one for the variance of the prediction at the target location
     return {
@@ -50,12 +53,11 @@ def build_graph(data_train, data_test,
     }
 
 
-def train(graph, data_test, max_iters, validate_after):
+def train(graph, data_test, max_iters, validate_after, log_dir):
     init = tf.global_variables_initializer()
-
     with tf.Session() as sess:
-        sess.run(init)
-
+        writer = tf.summary.FileWriter('./logs/{}'.format(log_dir), sess.graph)
+        sess.run(init)        
         for it in range(max_iters):
             sess.run([graph['train_step']])
 
@@ -64,8 +66,11 @@ def train(graph, data_test, max_iters, validate_after):
                     [ graph['loss'], graph['mu'], graph['sigma'], 
                      data_test.target_y, data_test.query ]
                 )
-
+                tf.summary.scalar('test_loss', loss_value)
+                merge = tf.compat.v1.summary.merge_all()
+                summary = sess.run(merge)
+                writer.add_summary(summary, it)
                 (context_x, context_y), target_x = whole_query
-                print('Iteration: {}, loss: {:.5f}'.format(it, loss_value))
+                print('Iteration: {}, test loss: {:.5f}'.format(it, loss_value))
 
         return (target_y, pred_y, pred_var)

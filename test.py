@@ -26,9 +26,13 @@ from model import *
 
 
 def meta_gp_test(x_dim=1,
+                min_x=-2.,
+                max_x=2.,
+
                 batch_size=64,
                 test_targets=500,
                 context_points=10,
+
                 train_iters=int(1.5e5),
                 eval_after=int(1e4)):
     
@@ -37,21 +41,22 @@ def meta_gp_test(x_dim=1,
     dataset_train = GPCurvesReader(x_size=x_dim,
                                     batch_size=batch_size, 
                                     num_context=context_points)
-    data_train = dataset_train.generate_curves()
+    data_train = dataset_train.generate_curves(min_x=min_x, max_x=max_x)
 
     # Test dataset
     dataset_test = GPCurvesReader(x_size=x_dim,
                                 batch_size=1, 
                                 num_context=context_points, 
                                 testing=True)
-    data_test = dataset_test.generate_curves(num_target=test_targets)
+    data_test = dataset_test.generate_curves(num_target=test_targets, min_x=min_x, max_x=max_x)
+    
     g = build_graph(data_train, 
                     data_test,
                     [128, 128, 128, 128], 
                     [128, 128, 2]
         )
-
-    target_y, pred_y, pred_var = train(g, data_test, train_iters, eval_after)
+    log_dir = "d{}r{:.0f}_b{}_t{}_c{}_i{}".format(x_dim, (max_x - min_x), batch_size, test_targets, context_points, train_iters)
+    target_y, pred_y, pred_var = train(g, data_test, train_iters, eval_after, log_dir)
     target = target_y[0,:,0]
     pred = pred_y[0,:,0]
     var = pred_var[0,:,0]
@@ -73,11 +78,13 @@ if __name__ == "__main__":
     start = time.time()
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-x_dim', type=int, default=1, help='GP input dimension') 
+    parser.add_argument('-x_dim', type=int, default=1, help='GP input dimension')
+    parser.add_argument('-min_x', type=float, default=-1., help='GP x min value')
+    parser.add_argument('-max_x', type=int, default=1., help='GP x max value') 
     parser.add_argument('-batch_size', type=int, default=64, help='meta-train batch size') 
-    parser.add_argument('-test_targets', type=int, default=500, help='number of test targets') 
+    parser.add_argument('-test_targets', type=int, default=1000, help='number of test targets') 
     parser.add_argument('-context_points', type=int, default=10, help='number of support set') 
-    parser.add_argument('-train_iters', type=int, default=int(1.5e5), help='number of iterations in meta-training phase') 
+    parser.add_argument('-train_iters', type=int, default=int(1e5), help='number of iterations in meta-training phase') 
     parser.add_argument('-eval_after', type=int, default=int(1e4), help='the validation steps during meta-training') 
     
     args = vars(parser.parse_args())

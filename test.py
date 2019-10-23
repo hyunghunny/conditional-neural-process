@@ -76,10 +76,11 @@ def meta_gp_test(x_dim=1,
 
 if __name__ == "__main__":
     os.environ['CUDA_DEVICE_ORDER'] = "PCI_BUS_ID"
-    os.environ['CUDA_VISIBLE_DEVICES'] = "0"    
+    
     start = time.time()
 
     parser = argparse.ArgumentParser()
+    parser.add_argument('-gpu_id', type=int, default=0, help='GPU ID to be fully assigned')
     parser.add_argument('-x_dim', type=int, default=1, help='GP input dimension')
     parser.add_argument('-min_x', type=float, default=-1., help='GP x min value')
     parser.add_argument('-max_x', type=float, default=1., help='GP x max value')
@@ -91,6 +92,8 @@ if __name__ == "__main__":
     parser.add_argument('-eval_after', type=int, default=int(1e4), help='the validation steps during meta-training') 
     
     args = vars(parser.parse_args())
+    os.environ['CUDA_VISIBLE_DEVICES'] = args['gpu_id']
+    del args['gpu_id']    
     print("condition: {}".format(args))
     meta_gp_test(**args)
     print("Elapsed time of meta-learning: {:.0f}".format(time.time() - start))

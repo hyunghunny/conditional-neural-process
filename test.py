@@ -28,6 +28,7 @@ from model import *
 def meta_gp_test(x_dim=1,
                 min_x=-2.,
                 max_x=2.,
+                lr=1e-4,
 
                 batch_size=64,
                 test_targets=500,
@@ -53,9 +54,10 @@ def meta_gp_test(x_dim=1,
     g = build_graph(data_train, 
                     data_test,
                     [128, 128, 128, 128], 
-                    [128, 128, 2]
+                    [128, 128, 2],
+                    lr=lr
         )
-    log_dir = "d{}r{:.0f}_b{}_t{}_c{}_i{}".format(x_dim, (max_x - min_x), batch_size, test_targets, context_points, train_iters)
+    log_dir = "d{}r{:.0f}_b{}_t{}_c{}_i{}_lr{}".format(x_dim, (max_x - min_x), batch_size, test_targets, context_points, train_iters, lr)
     target_y, pred_y, pred_var = train(g, data_test, train_iters, eval_after, log_dir)
     target = target_y[0,:,0]
     pred = pred_y[0,:,0]
@@ -80,7 +82,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-x_dim', type=int, default=1, help='GP input dimension')
     parser.add_argument('-min_x', type=float, default=-1., help='GP x min value')
-    parser.add_argument('-max_x', type=int, default=1., help='GP x max value') 
+    parser.add_argument('-max_x', type=float, default=1., help='GP x max value')
+    parser.add_argument('-lr', type=float, default=5e-4, help='learning rate') 
     parser.add_argument('-batch_size', type=int, default=64, help='meta-train batch size') 
     parser.add_argument('-test_targets', type=int, default=1000, help='number of test targets') 
     parser.add_argument('-context_points', type=int, default=10, help='number of support set') 

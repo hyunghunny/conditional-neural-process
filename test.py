@@ -20,6 +20,7 @@ import argparse
 import numpy as np
 import tensorflow as tf
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+from scipy.stats import spearmanr as smr
 
 from data.gp_gen import GPCurvesReader
 from build import *
@@ -39,8 +40,8 @@ def train(graph, data_test, max_iters, validate_after, log_dir):
             if it % validate_after == 0:
                 loss_value, pred_y, pred_var, target_y, whole_query, test_summary = sess.run(
                     [ graph['loss'], graph['mu'], graph['sigma'], 
-                     data_test.target_y, data_test.query,
-                     graph['summary']['test'] ]
+                      data_test.target_y, data_test.query,
+                      graph['summary']['test'] ]
                 )
                 writer.add_summary(test_summary, it)
                 (context_x, context_y), target_x = whole_query
@@ -49,21 +50,38 @@ def train(graph, data_test, max_iters, validate_after, log_dir):
         return (target_y, pred_y, pred_var)
 
 
+def compute_lcb(func_m, func_v, epsilon=0.0001):
+    
+    func_s = np.sqrt(func_v) + epsilon
+    ucb = func_m - func_s
+
+    return ucb 
+
+
+def rank_corr(group1, group2):
+    corr = smr(group1, group2).correlation
+    return corr
+
+
 def evaluate(target_y, pred_y, pred_var):
     target = target_y[0,:,0]
-    pred = pred_y[0,:,0]
+    mean = pred_y[0,:,0]
     var = pred_var[0,:,0]
+    
+    pred = compute_lcb(mean, var) # use of UCB
+
     rmse = np.sqrt(mean_squared_error(target, pred))
     mae = mean_absolute_error(target, pred)
     r2 = r2_score(target, pred)
     print("RMSE: {:.5f}, MAP:{:.5f}, R^2: {:.5f}".format(rmse, mae, r2))
+    print("Spearman rank correlation: {:.5f}".format(rank_corr(target, pred)))
     target_max_index = np.argmax(target)
     pred_max_index = np.argmax(pred)
     print("Real: {}, Estimate: {}".format(target_max_index, pred_max_index))
     print("Real optima: {:.5f}, estimated: {:.5f}({:.5f})".format(
-        target[target_max_index], pred[target_max_index], var[target_max_index]))
+        target[target_max_index], mean[target_max_index], var[target_max_index]))
     print("Estimated optima: {:.5f} ({:.5f}), real: {:.5f}".format(
-        pred[pred_max_index], var[pred_max_index], target[pred_max_index]))
+        mean[pred_max_index], var[pred_max_index], target[pred_max_index]))
 
 
 def main(x_dim=1,
@@ -83,7 +101,6 @@ def main(x_dim=1,
 
     
     tf.reset_default_graph()
-
     random_kernel_parameters = True
 
     # Train dataset

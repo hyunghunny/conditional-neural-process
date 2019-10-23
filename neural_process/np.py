@@ -50,7 +50,7 @@ class LatentModel(object):
                     deterministic_encoder_output_sizes, attention)
         
 
-    def __call__(self, query, num_targets, num_contexts, target_y=None):
+    def __call__(self, query, num_targets, num_contexts=None, target_y=None):
         """Returns the predicted mean and variance at the target points.
 
         Args:
@@ -108,7 +108,7 @@ class LatentModel(object):
                     tf.contrib.distributions.kl_divergence(posterior, prior), 
                     axis=-1, keepdims=True)
             kl = tf.tile(kl, [1, num_targets])
-            loss = - tf.reduce_mean(log_p - kl / tf.cast(num_targets, tf.float32))
+            loss = -tf.reduce_mean(log_p - kl / tf.cast(num_targets, tf.float32))
         else:
             log_p = None
             kl = None

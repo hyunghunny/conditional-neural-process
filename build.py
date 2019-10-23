@@ -22,15 +22,14 @@ def build_graph(model, data_train, data_test,
 
     # Define the loss
     _, _, log_prob, _, loss = model(data_train.query, 
-                           data_train.num_total_points,
-                           data_train.num_context_points, 
-                           data_train.target_y)
-    
+                                    data_train.num_total_points,
+                                    data_train.num_context_points, 
+                                    data_train.target_y)
 
     # Get the predicted mean and variance at the target points for the testing set
     mu, sigma, _, _, _ = model(data_test.query, 
-                                data_test.num_total_points,
-                                data_test.num_context_points)
+                               data_test.num_total_points,
+                               data_test.num_context_points)
 
     # Set up the optimizer and train step
     optimizer = tf.train.AdamOptimizer(lr)

@@ -14,10 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-
 import tensorflow as tf
 import numpy as np
-from cnp import CNPRegressionDescription
+from data.data_type import NPRegressionDescription 
 
 
 class GPCurvesReader(object):
@@ -36,18 +35,21 @@ class GPCurvesReader(object):
                  y_size=1,
                  l1_scale=0.4,
                  sigma_scale=1.0,
+                 random_kernel_parameters=True,
                  testing=False):
         """Creates a regression dataset of functions sampled from a GP.
 
-        Args:
-          batch_size: An integer.
-          num_context: The number of observations in the context.
-          x_size: Integer >= 1 for length of "x values" vector.
-          y_size: Integer >= 1 for length of "y values" vector.
-          l1_scale: Float; typical scale for kernel distance function.
-          sigma_scale: Float; typical scale for variance.
-          testing: Boolean that indicates whether we are testing. If so there are
-              more targets for visualization.
+            Args:
+            batch_size: An integer.
+            num_context: The number of observations in the context.
+            x_size: Integer >= 1 for length of "x values" vector.
+            y_size: Integer >= 1 for length of "y values" vector.
+            l1_scale: Float; typical scale for kernel distance function.
+            sigma_scale: Float; typical scale for variance.
+            random_kernel_parameters: If `True`, the kernel parameters (l1 and sigma) 
+                        will be sampled uniformly within [0.1, l1_scale] and [0.1, sigma_scale].          
+            testing: Boolean that indicates whether we are testing. If so there are
+                more targets for visualization.
         """
         self._batch_size = batch_size
         self._num_context = num_context
@@ -55,6 +57,7 @@ class GPCurvesReader(object):
         self._y_size = y_size
         self._l1_scale = l1_scale
         self._sigma_scale = sigma_scale
+        self._random_kernel_parameters = random_kernel_parameters
         self._testing = testing
 
     def _gaussian_kernel(self, xdata, l1, sigma_f, sigma_noise=2e-2):
@@ -103,7 +106,7 @@ class GPCurvesReader(object):
         Generated functions are `float32` with x values between min_x and max_x.
 
         Returns:
-          A `CNPRegressionDescription` namedtuple.
+          A `NPRegressionDescription` namedtuple.
         """
         #num_context = tf.random_uniform(
         #    shape=[], minval=3, maxval=self._num_context, dtype=tf.int32)
@@ -125,11 +128,19 @@ class GPCurvesReader(object):
             [self._batch_size, num_total_points, self._x_size], min_x, max_x)
 
         # Set kernel parameters
-        l1 = (tf.ones(shape=[self._batch_size,
-                             self._y_size, self._x_size]) * self._l1_scale)
-        sigma_f = tf.ones(
-            shape=[self._batch_size, self._y_size]) * self._sigma_scale
-
+        # Either choose a set of random parameters for the mini-batch
+        if self._random_kernel_parameters:
+            l1 = tf.random_uniform([self._batch_size, self._y_size,
+                                                            self._x_size], 0.1, self._l1_scale)
+            sigma_f = tf.random_uniform([self._batch_size, self._y_size],
+                                                                    0.1, self._sigma_scale)
+        # Or use the same fixed parameters for all mini-batches
+        else:
+            l1 = tf.ones(shape=[self._batch_size, self._y_size,
+                                                    self._x_size]) * self._l1_scale
+            sigma_f = tf.ones(shape=[self._batch_size,
+                              self._y_size]) * self._sigma_scale
+     
         # Pass the x_values through the Gaussian kernel
         # [batch_size, y_size, num_total_points, num_total_points]
         kernel = self._gaussian_kernel(x_values, l1, sigma_f)
@@ -169,7 +180,7 @@ class GPCurvesReader(object):
 
         query = ((context_x, context_y), target_x)
 
-        return CNPRegressionDescription(
+        return NPRegressionDescription(
             query=query,
             target_y=target_y,
             num_total_points=tf.shape(target_x)[1],

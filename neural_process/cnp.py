@@ -15,27 +15,11 @@ limitations under the License.
 """
 
 import tensorflow as tf
-from encoder import *
-from decoder import *
-import collections
-
-# The CNP takes as input a `CNPRegressionDescription` namedtuple with fields:
-#   `query`: a tuple containing ((context_x, context_y), target_x)
-#   `target_y`: a tesor containing the ground truth for the targets to be
-#     predicted
-#   `num_total_points`: A vector containing a scalar that describes the total
-#     number of datapoints used (context + target)
-#   `num_context_points`: A vector containing a scalar that describes the number
-#     of datapoints used as context
-# The GPCurvesReader returns the newly sampled data in this format at each
-# iteration
-
-CNPRegressionDescription = collections.namedtuple(
-    "CNPRegressionDescription",
-    ("query", "target_y", "num_total_points", "num_context_points"))
+from neural_process.cnp_encoder import *
+from neural_process.cnp_decoder import *
 
 
-class DeterministicModel(object):
+class CNPModel(object):
     """The CNP model."""
 
     def __init__(self, encoder_output_sizes, decoder_output_sizes):
@@ -51,7 +35,7 @@ class DeterministicModel(object):
         self._encoder = DeterministicEncoder(encoder_output_sizes)
         self._decoder = DeterministicDecoder(decoder_output_sizes)
 
-    def __call__(self, query, num_total_points, num_contexts, target_y=None):
+    def __call__(self, query, num_targets, num_contexts, target_y=None):
         """Returns the predicted mean and variance at the target points.
 
         Args:
@@ -62,9 +46,10 @@ class DeterministicModel(object):
                             y values of the context points.
                     target_x: Array of shape batch_size x num_target x 1 contains the
                             x values of the target points.
+            num_targets: Number of target points.
+            num_contexts: Number of context points.
             target_y: The ground truth y values of the target y. An array of 
                     shape batchsize x num_targets x 1.
-            num_total_points: Number of target points.
 
         Returns:
             log_p: The log_probability of the target_y given the predicted
@@ -77,7 +62,7 @@ class DeterministicModel(object):
 
         # Pass query through the encoder and the decoder
         representation = self._encoder(context_x, context_y, num_contexts)
-        dist, mu, sigma = self._decoder(representation, target_x, num_total_points)
+        dist, mu, sigma = self._decoder(representation, target_x, num_targets)
 
         # If we want to calculate the log_prob for training we will make use of the
         # target_y. At test time the target_y is not available so we return None
@@ -85,6 +70,8 @@ class DeterministicModel(object):
             log_p = dist.log_prob(target_y)
         else:
             log_p = None
-
-        return log_p, mu, sigma
+        
+        loss = -tf.reduce_mean(log_p)
+        
+        return mu, sigma, log_p, None, loss
 

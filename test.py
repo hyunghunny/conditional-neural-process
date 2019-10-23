@@ -92,7 +92,7 @@ if __name__ == "__main__":
     parser.add_argument('-eval_after', type=int, default=int(1e4), help='the validation steps during meta-training') 
     
     args = vars(parser.parse_args())
-    os.environ['CUDA_VISIBLE_DEVICES'] = args['gpu_id']
+    os.environ['CUDA_VISIBLE_DEVICES'] = str(args['gpu_id'])
     del args['gpu_id']    
     print("condition: {}".format(args))
     meta_gp_test(**args)

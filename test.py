@@ -120,7 +120,7 @@ def main(x_dim=1,
         m = LatentModel(latent_encoder_output_sizes, hidden_size,
                         decoder_output_sizes, use_deterministic_path, 
                         deterministic_encoder_output_sizes, attention)
-        model_type = "{}-{}".format(model_type, attention)                                                     
+        model_type = "{}-{}".format(model_type, attention_type)                                                     
     
     # NP - equivalent to uniform attention
     elif model_type == 'NP':
